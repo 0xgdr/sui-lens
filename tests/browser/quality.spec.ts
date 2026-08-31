@@ -52,6 +52,11 @@ test('the header and browser metadata share the Sui Lens mark', async ({ page })
   const brand = page.getByRole('link', { name: 'Sui Lens home' });
   await expect(brand.locator('img')).toHaveAttribute('src', '/favicon.svg');
   await expect(brand.locator('img')).toHaveAttribute('width', '42');
+
+  const githubLink = page.getByRole('link', { name: 'View Sui Lens on GitHub' });
+  await expect(githubLink).toHaveAttribute('href', 'https://github.com/0xgdr/sui-lens');
+  await expect(githubLink.locator('svg')).toBeVisible();
+
   await expect(page.locator('link[rel="icon"][type="image/svg+xml"]')).toHaveAttribute('href', '/favicon.svg');
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('href', '/apple-touch-icon.png');
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', '/social-card.png');

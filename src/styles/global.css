@@ -60,6 +60,8 @@ button, input { font: inherit; }
 .site-header nav { display: flex; align-items: center; gap: 6px; }
 .site-header nav a { padding: 8px 12px; border-radius: 999px; color: var(--muted); font-size: var(--text-ui); font-weight: 700; text-decoration: none; }
 .site-header nav a:hover, .site-header nav a.active { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line), 3px 3px 0 var(--blue-soft); }
+.site-header nav .github-link { display: grid; width: 44px; height: 44px; margin-left: 2px; padding: 0; place-items: center; }
+.github-link svg { display: block; }
 .header-action { display: inline-flex; min-height: 44px; align-items: center; justify-self: end; padding: 10px 14px; background: var(--navy-950); color: white; border-radius: var(--radius-sm); font-size: var(--text-supporting); font-weight: 800; text-decoration: none; }
 .home-hero { position: relative; overflow: hidden; min-height: 440px; background: #eaf3ff; color: var(--ink); border-block: 1px solid #c6d9ee; }
 .home-hero::before { position: absolute; inset: 0; content: ''; background: radial-gradient(circle at 82% 44%, rgba(43,132,255,.16), transparent 23rem), radial-gradient(rgba(43,132,255,.15) .8px, transparent .8px); background-size: auto, 24px 24px; }
