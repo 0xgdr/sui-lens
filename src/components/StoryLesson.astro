@@ -1,0 +1,462 @@
+---
+interface Story {
+  marker: string;
+  title: string;
+  body: string;
+  icon: 'backpack' | 'checkpoint' | 'compass' | 'map' | 'pass' | 'receipt' | 'tag';
+  demo: 'object' | 'ptb' | 'coins' | 'checkpoint' | 'signature' | 'receipt' | 'trail-note';
+  accuracyNote?: string;
+  journeyStop?: number;
+}
+
+interface Props { story: Story }
+const { story } = Astro.props;
+const icon = `/journey/${story.icon}.svg`;
+---
+
+<section class="story-lesson" data-story-demo={story.demo}>
+  <header class="story-scene">
+    <div class="story-scene-icon" aria-hidden="true">
+      <span></span>
+      <img src={icon} alt="" />
+    </div>
+    <div>
+      <span class="story-marker">{story.marker}</span>
+      <h2>{story.title}</h2>
+      <p>{story.body}</p>
+    </div>
+  </header>
+
+  <div class="story-prediction">
+    <slot name="prediction" />
+  </div>
+
+  <section class="story-workbench" aria-label={`${story.title} visual experiment`}>
+    <header class="workbench-label">
+      <span>Try it, then inspect the evidence</span>
+      <strong>{story.demo === 'trail-note' ? 'Trail note' : 'Learning workbench'}</strong>
+    </header>
+
+    {story.demo === 'object' && (
+      <div class="object-demo">
+        <div class="backpack-stage" aria-hidden="true">
+          <span class="backpack-orbit"></span>
+          <img src="/journey/backpack.svg" alt="" />
+          <span class="gear-chip compass-chip"><img src="/journey/compass.svg" alt="" />Compass</span>
+          <span class="gear-chip pass-chip"><img src="/journey/pass.svg" alt="" />Trail pass</span>
+          <code>0xb4c0</code>
+        </div>
+        <div class="object-demo-panel">
+          <dl>
+            <div><dt>Object ID</dt><dd>0xb4c0</dd></div>
+            <div><dt>Version</dt><dd data-object-version>10</dd></div>
+            <div><dt>Digest</dt><dd data-object-digest>7Qm…k2</dd></div>
+            <div><dt>Trail tag</dt><dd data-object-label>Day pack</dd></div>
+          </dl>
+          <button class="workbench-action" type="button" data-object-action>Update trail tag</button>
+          <p data-object-observation aria-live="polite">This is Backpack 0xb4c0 at one exact revision.</p>
+        </div>
+      </div>
+    )}
+
+    {story.demo === 'ptb' && (
+      <div class="ptb-demo">
+        <div class="ptb-story-route">
+          <img src="/journey/map.svg" alt="" aria-hidden="true" />
+          <div><span data-ptb-label>Start at the trailhead</span><strong data-ptb-copy>Pack the gas coin, the 1 SUI amount, and the guide address.</strong></div>
+        </div>
+        <div class="ptb-flow-demo" data-ptb-step="0">
+          <div class="ptb-node input" data-ptb-node="0"><span>Inputs</span><strong>GasCoin · 1 SUI · guide</strong></div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="ptb-node command" data-ptb-node="1"><span>Command 0</span><strong>SplitCoins</strong></div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="ptb-node result" data-ptb-node="2"><span data-ptb-result-label>Result from command 0</span><strong>travelCoin</strong></div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="ptb-node command" data-ptb-node="3"><span>Command 1</span><strong>TransferObjects</strong></div>
+        </div>
+        <div class="ptb-coordinate-key" data-ptb-coordinate-key hidden>
+          <div><span>First zero</span><strong>Command 0</strong><small>SplitCoins</small></div>
+          <span aria-hidden="true">then</span>
+          <div><span>Second zero</span><strong>Result 0</strong><small>The first new coin it created</small></div>
+        </div>
+        <div class="workbench-controls"><button class="workbench-action" type="button" data-ptb-action>Trace the first value</button><p data-ptb-observation aria-live="polite">The transaction begins with three inputs.</p></div>
+      </div>
+    )}
+
+    {story.demo === 'coins' && (
+      <div class="coin-demo" data-coin-beat="0">
+        <div class="coin-pocket">
+          <span class="coin-object primary"><b>A</b><small data-coin-a-caption>primary gas coin</small></span>
+          <span class="coin-object gas-payment"><b>B</b><small>gas payment</small></span>
+          <span class="coin-object gas-payment"><b>C</b><small>gas payment</small></span>
+          <span class="coin-object travel" hidden><b>D</b><small>guide’s travel coin</small></span>
+        </div>
+        <div class="coin-ledger" aria-live="polite">
+          <div><span>Coin objects</span><strong data-coin-objects>3 inputs ready</strong></div>
+          <div><span>SUI value</span><strong data-coin-value>Value is still inside A, B, and C</strong></div>
+        </div>
+        <div class="coin-beats">
+          <div class="coin-beat">
+            <h3 class="coin-beat-heading">1. Gas smashing</h3>
+            <button class="workbench-action" type="button" data-coin-smash>Run gas smashing</button>
+          </div>
+          <div class="coin-beat">
+            <h3 class="coin-beat-heading">2. The split</h3>
+            <button class="workbench-action" type="button" data-coin-split disabled>Split the travel coin</button>
+          </div>
+        </div>
+        <div class="workbench-controls">
+          <button class="workbench-action" type="button" data-coin-reset hidden>Reset the coin pocket</button>
+          <p data-coin-observation>First separate the containers from the value they hold.</p>
+        </div>
+      </div>
+    )}
+
+    {story.demo === 'checkpoint' && (
+      <div class="checkpoint-demo">
+        <div class="ownership-pair">
+          <div><img src="/journey/backpack.svg" alt="" /><span>Your object</span><strong>Backpack 0xb4c0</strong><small>AddressOwner(your address)</small></div>
+          <div><img src="/journey/checkpoint.svg" alt="" /><span>Public object</span><strong>CheckpointCounter</strong><small>Shared · 5 visits</small></div>
+        </div>
+        <div class="checkpoint-machine">
+          <div class="signature-switch" role="group" aria-label="Checkpoint function permission">
+            <button class="selected" type="button" data-checkpoint-mode="read" aria-pressed="true">&Counter <small>read</small></button>
+            <button type="button" data-checkpoint-mode="write" aria-pressed="false">&mut Counter <small>may change</small></button>
+          </div>
+          <div class="checkpoint-result"><span>Shared input</span><strong data-checkpoint-count>5 visits</strong><small data-checkpoint-effect>Object effect: none yet</small></div>
+          <button class="workbench-action" type="button" data-checkpoint-action>Run read_visits</button>
+          <p data-checkpoint-observation aria-live="polite">The ownership form and the function permission answer different questions.</p>
+        </div>
+      </div>
+    )}
+
+    {story.demo === 'signature' && (
+      <div class="signature-demo">
+        <div class="signature-tag"><img src="/journey/tag.svg" alt="" aria-hidden="true" /><code data-signature-code>inspect(backpack: &Backpack)</code></div>
+        <div class="signature-switch" role="group" aria-label="Move parameter form">
+          <button class="selected" type="button" data-signature-mode="read" aria-pressed="true">&T</button>
+          <button type="button" data-signature-mode="write" aria-pressed="false">&mut T</button>
+          <button type="button" data-signature-mode="value" aria-pressed="false">T</button>
+        </div>
+        <div class="signature-machine">
+          <span><img src="/journey/backpack.svg" alt="" />Backpack</span>
+          <strong data-signature-permission>borrowed for reading</strong>
+          <span data-signature-result>Caller keeps using it</span>
+        </div>
+        <div class="signature-bridge"><span>JavaScript bridge</span><code data-signature-js>function inspect(backpack: Readonly&lt;Backpack&gt;)</code><p data-signature-copy>Move enforces the read-only borrow in the function signature.</p></div>
+      </div>
+    )}
+
+    {story.demo === 'receipt' && (
+      <div class="receipt-demo">
+        <div class="receipt-art" aria-hidden="true"><img src="/journey/receipt.svg" alt="" /><span>Status: Success</span></div>
+        <div class="receipt-questions">
+          <button type="button" data-receipt-answer="The sender submitted the transaction and also paid its gas."><span>01</span><strong>Who acted?</strong><small>Reveal</small></button>
+          <button type="button" data-receipt-answer="A 1 SUI amount, guide address, and gas Coin&lt;SUI&gt; objects went in."><span>02</span><strong>What went in?</strong><small>Reveal</small></button>
+          <button type="button" data-receipt-answer="SplitCoins ran first. TransferObjects consumed its result."><span>03</span><strong>What ran?</strong><small>Reveal</small></button>
+          <button type="button" data-receipt-answer="A new travel coin was created and transferred. Gas coin objects were mutated or deleted."><span>04</span><strong>What changed?</strong><small>Reveal</small></button>
+          <button type="button" data-receipt-answer="Computation and storage were offset by a larger storage rebate."><span>05</span><strong>What did it cost?</strong><small>Reveal</small></button>
+          <p data-receipt-observation aria-live="polite">Open each part of the receipt and rebuild the payment from evidence.</p>
+        </div>
+      </div>
+    )}
+
+    {story.demo === 'trail-note' && (
+      <div class="trail-note-demo">
+        <img src={icon} alt="" aria-hidden="true" />
+        <div><span>A closer look along the route</span><strong>{story.title}</strong><p>Keep the backpack story in view, then use this lesson to inspect one technical distinction more carefully.</p></div>
+      </div>
+    )}
+  </section>
+
+  {story.accuracyNote && (
+    <details class="story-accuracy">
+      <summary>Where the story stops being literal</summary>
+      <p>{story.accuracyNote}</p>
+    </details>
+  )}
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-story-demo]').forEach((demo) => {
+    if (demo.dataset.storyReady === 'true') return;
+    demo.dataset.storyReady = 'true';
+
+    const objectAction = demo.querySelector<HTMLButtonElement>('[data-object-action]');
+    objectAction?.addEventListener('click', () => {
+      const changed = objectAction.dataset.changed === 'true';
+      objectAction.dataset.changed = String(!changed);
+      const version = demo.querySelector<HTMLElement>('[data-object-version]');
+      const digest = demo.querySelector<HTMLElement>('[data-object-digest]');
+      const label = demo.querySelector<HTMLElement>('[data-object-label]');
+      const observation = demo.querySelector<HTMLElement>('[data-object-observation]');
+      if (version) version.textContent = changed ? '10' : '27';
+      if (digest) digest.textContent = changed ? '7Qm…k2' : 'F9x…p7';
+      if (label) label.textContent = changed ? 'Day pack' : 'Trail ready';
+      if (observation) observation.textContent = changed ? 'This is Backpack 0xb4c0 at one exact revision.' : 'The ID stayed 0xb4c0. Version, digest, and trail-tag evidence moved forward.';
+      objectAction.textContent = changed ? 'Update trail tag' : 'Reset backpack';
+    });
+
+    const ptbAction = demo.querySelector<HTMLButtonElement>('[data-ptb-action]');
+    let ptbStep = 0;
+    const ptbCopy = [
+      ['Start at the trailhead', 'Pack the gas coin, the 1 SUI amount, and the guide address.'],
+      ['Command 0', 'SplitCoins uses the gas coin and amount to create a new travel coin.'],
+      ['The connecting value', 'NestedResult [0, 0] means command 0, then result 0 from that command.'],
+      ['Command 1', 'TransferObjects gives that exact travel coin to the guide.'],
+    ];
+    ptbAction?.addEventListener('click', () => {
+      ptbStep = (ptbStep + 1) % 4;
+      demo.querySelectorAll<HTMLElement>('[data-ptb-node]').forEach((node) => node.classList.toggle('active', Number(node.dataset.ptbNode) <= ptbStep));
+      const label = demo.querySelector<HTMLElement>('[data-ptb-label]');
+      const copy = demo.querySelector<HTMLElement>('[data-ptb-copy]');
+      const observation = demo.querySelector<HTMLElement>('[data-ptb-observation]');
+      const resultLabel = demo.querySelector<HTMLElement>('[data-ptb-result-label]');
+      const coordinateKey = demo.querySelector<HTMLElement>('[data-ptb-coordinate-key]');
+      if (label) label.textContent = ptbCopy[ptbStep][0];
+      if (copy) copy.textContent = ptbCopy[ptbStep][1];
+      if (resultLabel) resultLabel.textContent = ptbStep >= 2 ? 'NestedResult [0, 0]' : 'Result from command 0';
+      if (coordinateKey) coordinateKey.hidden = ptbStep < 2;
+      if (observation) {
+        observation.textContent = ptbStep === 2
+          ? 'The first 0 selects SplitCoins. The second 0 selects the first coin it created.'
+          : ptbStep === 3
+            ? 'TransferObjects receives that exact first result, not a copy and not an original input.'
+            : 'Follow the highlighted value from left to right.';
+      }
+      ptbAction.textContent = ptbStep === 3 ? 'Trace again' : 'Trace the next value';
+    });
+
+    const coinDemo = demo.querySelector<HTMLElement>('.coin-demo');
+    const smashAction = demo.querySelector<HTMLButtonElement>('[data-coin-smash]');
+    const splitAction = demo.querySelector<HTMLButtonElement>('[data-coin-split]');
+    const resetAction = demo.querySelector<HTMLButtonElement>('[data-coin-reset]');
+    const travelCoin = demo.querySelector<HTMLElement>('.coin-object.travel');
+    const primaryCaption = demo.querySelector<HTMLElement>('[data-coin-a-caption]');
+    const coinBeats = [
+      {
+        objects: '3 inputs ready',
+        value: 'Value is still inside A, B, and C',
+        observation: 'First separate the containers from the value they hold.',
+      },
+      {
+        objects: 'A survives · B and C deleted',
+        value: 'Value from B and C was consolidated into A',
+        observation: 'No travel coin yet. Gas smashing only consolidates value into the surviving gas coin.',
+      },
+      {
+        objects: 'A survives · B and C deleted · D created',
+        value: '1 SUI split from A and handed to the guide as D',
+        observation: 'The split creates the travel coin. It is not part of gas smashing.',
+      },
+    ] as const;
+    const setCoinBeat = (beat: 0 | 1 | 2) => {
+      if (!coinDemo) return;
+      coinDemo.dataset.coinBeat = String(beat);
+      const objects = demo.querySelector<HTMLElement>('[data-coin-objects]');
+      const value = demo.querySelector<HTMLElement>('[data-coin-value]');
+      const observation = demo.querySelector<HTMLElement>('[data-coin-observation]');
+      const copy = coinBeats[beat];
+      if (objects) objects.textContent = copy.objects;
+      if (value) value.textContent = copy.value;
+      if (observation) observation.textContent = copy.observation;
+      if (primaryCaption) primaryCaption.textContent = beat === 0 ? 'primary gas coin' : 'surviving gas coin';
+      if (travelCoin) travelCoin.hidden = beat !== 2;
+      if (smashAction) smashAction.disabled = beat !== 0;
+      if (splitAction) splitAction.disabled = beat !== 1;
+      if (resetAction) resetAction.hidden = beat !== 2;
+    };
+    smashAction?.addEventListener('click', () => setCoinBeat(1));
+    splitAction?.addEventListener('click', () => setCoinBeat(2));
+    resetAction?.addEventListener('click', () => setCoinBeat(0));
+
+    let checkpointMode = 'read';
+    demo.querySelectorAll<HTMLButtonElement>('[data-checkpoint-mode]').forEach((button) => button.addEventListener('click', () => {
+      checkpointMode = button.dataset.checkpointMode ?? 'read';
+      demo.querySelectorAll<HTMLButtonElement>('[data-checkpoint-mode]').forEach((item) => {
+        const selected = item === button;
+        item.classList.toggle('selected', selected);
+        item.setAttribute('aria-pressed', String(selected));
+      });
+      const action = demo.querySelector<HTMLButtonElement>('[data-checkpoint-action]');
+      if (action) action.textContent = checkpointMode === 'read' ? 'Run read_visits' : 'Run record_visit';
+    }));
+    demo.querySelector<HTMLButtonElement>('[data-checkpoint-action]')?.addEventListener('click', () => {
+      const count = demo.querySelector<HTMLElement>('[data-checkpoint-count]');
+      const effect = demo.querySelector<HTMLElement>('[data-checkpoint-effect]');
+      const observation = demo.querySelector<HTMLElement>('[data-checkpoint-observation]');
+      if (count) count.textContent = checkpointMode === 'read' ? '5 visits returned' : '6 visits';
+      if (effect) effect.textContent = checkpointMode === 'read' ? 'Object effect: no Counter write' : 'Object effect: Counter mutated';
+      if (observation) observation.textContent = checkpointMode === 'read' ? 'The shared Counter mattered as an input even though it was not changed.' : '&mut permitted the write. The object effect proves that it committed.';
+    });
+
+    const signatures = {
+      read: ['inspect(backpack: &Backpack)', 'borrowed for reading', 'Caller keeps using it', 'function inspect(backpack: Readonly<Backpack>)', 'Move enforces the read-only borrow in the function signature.'],
+      write: ['retag(backpack: &mut Backpack)', 'borrowed with permission to mutate', 'Effects prove whether it changed', 'function retag(backpack: Backpack)', 'JavaScript allows mutation through an object reference without declaring that permission.'],
+      value: ['check_in(backpack: Backpack)', 'passed by value', 'Caller cannot keep using the same value', 'function checkIn(backpack: Backpack)', 'Move transfers control of the value into the function. It is not merely a read-and-write reference.'],
+    } as const;
+    demo.querySelectorAll<HTMLButtonElement>('[data-signature-mode]').forEach((button) => button.addEventListener('click', () => {
+      const mode = (button.dataset.signatureMode ?? 'read') as keyof typeof signatures;
+      demo.querySelectorAll<HTMLButtonElement>('[data-signature-mode]').forEach((item) => {
+        const selected = item === button;
+        item.classList.toggle('selected', selected);
+        item.setAttribute('aria-pressed', String(selected));
+      });
+      const values = signatures[mode];
+      const targets = ['[data-signature-code]', '[data-signature-permission]', '[data-signature-result]', '[data-signature-js]', '[data-signature-copy]'];
+      targets.forEach((selector, index) => {
+        const target = demo.querySelector<HTMLElement>(selector);
+        if (target) target.textContent = values[index];
+      });
+    }));
+
+    demo.querySelectorAll<HTMLButtonElement>('[data-receipt-answer]').forEach((button) => button.addEventListener('click', () => {
+      demo.querySelectorAll<HTMLButtonElement>('[data-receipt-answer]').forEach((item) => item.classList.remove('selected'));
+      button.classList.add('selected', 'visited');
+      const observation = demo.querySelector<HTMLElement>('[data-receipt-observation]');
+      if (observation) observation.textContent = button.dataset.receiptAnswer ?? '';
+    }));
+  });
+</script>
+
+<style>
+  .coin-pocket {
+    display: grid;
+    grid-template-columns: repeat(4, 96px);
+    justify-content: center;
+    align-items: center;
+    gap: 24px;
+    min-height: 220px;
+    padding: 32px 30px;
+    background: var(--amber-soft);
+  }
+  .coin-object {
+    display: grid;
+    width: 96px;
+    height: 96px;
+    place-items: center;
+    align-content: center;
+    background: white;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    box-shadow: 0 7px 16px rgba(18, 32, 51, .12);
+    transition: opacity 200ms ease;
+  }
+  .coin-object b {
+    font-family: var(--mono);
+    font-size: 20px;
+  }
+  .coin-object small {
+    max-width: 68px;
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: var(--text-meta);
+    line-height: 1.2;
+    text-align: center;
+  }
+  .coin-object.travel {
+    background: var(--blue-soft);
+    border-color: var(--blue);
+  }
+  .coin-ledger {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--line);
+  }
+  .coin-ledger > div {
+    min-width: 0;
+    padding: 13px 18px;
+    border-right: 1px solid var(--line);
+  }
+  .coin-ledger > div:last-child {
+    border-right: 0;
+  }
+  .coin-ledger span,
+  .coin-ledger strong {
+    display: block;
+  }
+  .coin-ledger span {
+    color: var(--muted);
+    font-size: var(--text-meta);
+    font-weight: 750;
+    text-transform: uppercase;
+  }
+  .coin-ledger strong {
+    margin-top: 4px;
+    font-size: var(--text-small);
+  }
+  .coin-beats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border-top: 1px solid var(--line);
+    overflow: visible;
+  }
+  .coin-beat {
+    min-width: 0;
+    padding: 20px 18px;
+  }
+  .coin-beat + .coin-beat {
+    border-left: 1px solid var(--line);
+  }
+  .coin-beat-heading {
+    margin: 0 0 10px;
+    color: var(--blue);
+    font-family: var(--mono);
+    font-size: var(--text-small);
+    font-weight: 750;
+    letter-spacing: .04em;
+    line-height: 1.3;
+    overflow: visible;
+  }
+  .coin-demo[data-coin-beat="1"] .coin-object.gas-payment,
+  .coin-demo[data-coin-beat="2"] .coin-object.gas-payment {
+    opacity: .35;
+  }
+  .coin-demo:not([data-coin-beat="2"]) .coin-object.travel {
+    display: none;
+  }
+  .coin-demo .workbench-action:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+  @media (max-width: 640px) {
+    .coin-pocket {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      min-height: 230px;
+      padding: 28px 14px 54px;
+    }
+    .coin-pocket .coin-object {
+      position: relative;
+      width: min(64px, 100%);
+      height: auto;
+      aspect-ratio: 1;
+      justify-self: center;
+    }
+    .coin-pocket .coin-object small {
+      position: absolute;
+      top: calc(100% + 7px);
+      left: 50%;
+      width: 70px;
+      max-width: none;
+      margin: 0;
+      transform: translateX(-50%);
+    }
+    .coin-ledger,
+    .coin-beats {
+      grid-template-columns: 1fr;
+    }
+    .coin-ledger > div {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .coin-ledger > div:last-child {
+      border-bottom: 0;
+    }
+    .coin-beat + .coin-beat {
+      border-top: 1px solid var(--line);
+      border-left: 0;
+    }
+  }
+</style>

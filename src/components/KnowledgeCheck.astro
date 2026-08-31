@@ -1,0 +1,63 @@
+---
+interface Option {
+  id: string;
+  label: string;
+}
+
+interface Props {
+  question: string;
+  options: Option[];
+  answer: string;
+  explanation: string;
+}
+
+const { question, options, answer, explanation } = Astro.props;
+---
+
+<section class="prediction" data-prediction data-answer={answer}>
+  <div class="prediction-heading">
+    <span>Predict first</span>
+    <h2>{question}</h2>
+  </div>
+  <div class="prediction-options" role="group" aria-label="Prediction choices">
+    {options.map((option) => (
+      <button type="button" data-choice={option.id} aria-pressed="false">
+        <span>{option.label}</span>
+        <small data-choice-result></small>
+      </button>
+    ))}
+  </div>
+  <p class="prediction-feedback" data-feedback data-explanation={explanation} aria-live="polite">
+    Choose an answer before revealing the explanation.
+  </p>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-prediction]').forEach((prediction) => {
+    if (prediction.dataset.ready === 'true') return;
+    prediction.dataset.ready = 'true';
+    const answer = prediction.dataset.answer;
+    const feedback = prediction.querySelector<HTMLElement>('[data-feedback]');
+    const buttons = prediction.querySelectorAll<HTMLButtonElement>('[data-choice]');
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const correct = button.dataset.choice === answer;
+        buttons.forEach((item) => {
+          const isAnswer = item.dataset.choice === answer;
+          const isChosen = item === button;
+          const result = item.querySelector<HTMLElement>('[data-choice-result]');
+          item.setAttribute('aria-pressed', String(item === button));
+          item.classList.toggle('is-selected', isChosen);
+          item.classList.toggle('is-correct', isAnswer);
+          item.classList.toggle('is-wrong', isChosen && !isAnswer);
+          if (result) result.textContent = isAnswer ? '✓ Correct answer' : isChosen ? 'Your choice' : '';
+        });
+        if (feedback) {
+          feedback.className = `prediction-feedback ${correct ? 'is-right' : 'is-wrong'}`;
+          feedback.textContent = `${correct ? 'Correct.' : 'Not quite. The correct answer is highlighted.'} ${feedback.dataset.explanation}`;
+        }
+      });
+    });
+  });
+</script>

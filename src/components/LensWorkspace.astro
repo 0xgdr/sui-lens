@@ -1,0 +1,375 @@
+---
+import { sampleDigest } from '../lib/lens/sample-transfer';
+---
+
+<section class="lens-hero">
+  <div class="page-shell lens-hero-inner">
+    <div class="lens-hero-copy">
+      <p class="section-kicker">Sui Transaction Lens</p>
+      <h1>Inspect a Sui transaction.</h1>
+      <p>Paste a mainnet digest. Lens separates the sender, inputs, commands, effects, and cost, with the raw chain evidence kept close by.</p>
+      <div class="lens-promise"><img src="/journey/receipt.svg" alt="" /><span><strong>Read-only inspection</strong>Nothing here signs or sends a transaction.</span></div>
+    </div>
+    <form class="digest-form" id="digest-form" novalidate>
+      <label for="digest">Mainnet transaction digest</label>
+      <div><input id="digest" name="digest" placeholder="Paste a Sui transaction digest" spellcheck="false" autocomplete="off" aria-describedby="digest-help" /><button type="submit">Inspect</button></div>
+      <p id="digest-help">Need an example? Start with the real transaction below.</p>
+    </form>
+  </div>
+</section>
+
+<div class="page-shell lens-workspace" id="lens-workspace">
+  <section class="lens-empty" id="lens-empty">
+    <section class="recent-inspections" id="recent-inspections" aria-labelledby="recent-inspections-title" hidden>
+      <header>
+        <div><span>Saved on this device</span><h2 id="recent-inspections-title">Recent inspections</h2></div>
+        <button type="button" id="clear-recent">Clear history</button>
+      </header>
+      <div class="recent-inspection-list" id="recent-inspection-list"></div>
+    </section>
+    <article class="sample-card">
+      <div class="sample-card-heading"><img src="/journey/pass.svg" alt="" /><span>Worked example · mainnet</span></div>
+      <h2>Try Lens with a real 1 SUI transfer.</h2>
+      <p>Three gas-payment objects went in. A new 1 SUI coin reached the recipient. A storage rebate changed the final cost. Inspect each claim against the transaction evidence.</p>
+      <a class="button button-dark" id="sample-inspection" data-digest={sampleDigest} href={`?digest=${sampleDigest}`}>Inspect the example <span aria-hidden="true">→</span></a>
+    </article>
+    <aside class="lens-boundaries">
+      <span>Five questions for every transaction</span>
+      <ol>
+        <li><strong>Who acted?</strong><small>Separate sender from gas payer.</small></li>
+        <li><strong>What went in?</strong><small>Objects, pure values, and gas payment.</small></li>
+        <li><strong>What ran?</strong><small>Follow PTB commands in order.</small></li>
+        <li><strong>What changed?</strong><small>Read effects, not intentions.</small></li>
+        <li><strong>What did it cost?</strong><small>Include storage and its rebate.</small></li>
+      </ol>
+    </aside>
+  </section>
+
+  <section class="lens-state lens-loading" id="lens-loading" role="status" aria-live="polite" hidden>
+    <div class="lens-loader" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div><span>Reading mainnet evidence</span><strong>Finding the transaction, commands, and effects…</strong><p>This uses Sui’s read-only GraphQL index, so older transactions remain available for study.</p></div>
+  </section>
+
+  <section class="lens-state lens-error" id="lens-error" role="alert" tabindex="-1" hidden>
+    <img src="/journey/map.svg" alt="" />
+    <div><span>We lost the trail</span><strong id="lens-error-title">That digest could not be inspected.</strong><p id="lens-error-message"></p><button type="button" class="text-button" id="retry-button">Try again</button></div>
+  </section>
+
+  <section class="lens-report" id="lens-report" aria-labelledby="report-title" hidden>
+    <div class="evidence-key" aria-label="Evidence labels">
+      <span>How to read the labels</span>
+      <div><b class="evidence-level observed">observed</b><small>returned directly by the chain</small></div>
+      <div><b class="evidence-level decoded">decoded</b><small>bytes or arithmetic given meaning</small></div>
+      <div><b class="evidence-level inferred">inferred</b><small>a careful conclusion from facts</small></div>
+    </div>
+    <header class="report-header">
+      <div class="report-meta"><span class="status-pill" id="report-status"><i></i><span></span></span><span id="report-network"></span><span>· Sui GraphQL</span></div>
+      <h2 id="report-title"></h2>
+      <div class="report-digest-row">
+        <code id="report-digest"></code>
+        <div>
+          <button type="button" class="copy-button" id="copy-digest">Copy digest</button>
+          <a id="report-explorer-link" target="_blank" rel="noreferrer">Open in Suiscan ↗</a>
+        </div>
+      </div>
+    </header>
+    <div class="answer-list" id="answer-list"></div>
+    <details class="raw-response">
+      <summary>Open the complete raw response</summary>
+      <div class="raw-response-intro">
+        <p>Friendly explanations are a layer over this evidence. When they disagree, the raw transaction and effects win. Primitive arrays stay grouped so bytes are easier to scan.</p>
+        <button type="button" class="copy-button" id="copy-raw">Copy JSON</button>
+      </div>
+      <pre><code id="raw-json"></code></pre>
+    </details>
+  </section>
+</div>
+
+<script>
+  import { getMainnetTransaction, resolveMoveFunctionSignatures } from '../lib/lens/source';
+  import { normalizeTransaction } from '../lib/lens/normalize';
+  import { explainTransaction } from '../lib/lens/explain';
+  import { isTransactionDigest } from '../lib/lens/digest';
+  import { LatestInspection } from '../lib/lens/latest-inspection';
+  import { parseRecentInspections, type RecentInspection } from '../lib/lens/recent';
+  import type { LensAnswer, LensReport } from '../lib/lens/types';
+
+  const form = document.querySelector<HTMLFormElement>('#digest-form');
+  const input = document.querySelector<HTMLInputElement>('#digest');
+  const sampleInspection = document.querySelector<HTMLAnchorElement>('#sample-inspection');
+  const empty = document.querySelector<HTMLElement>('#lens-empty');
+  const loading = document.querySelector<HTMLElement>('#lens-loading');
+  const error = document.querySelector<HTMLElement>('#lens-error');
+  const reportElement = document.querySelector<HTMLElement>('#lens-report');
+  const retry = document.querySelector<HTMLButtonElement>('#retry-button');
+  const recentElement = document.querySelector<HTMLElement>('#recent-inspections');
+  const recentList = document.querySelector<HTMLElement>('#recent-inspection-list');
+  const clearRecent = document.querySelector<HTMLButtonElement>('#clear-recent');
+  const copyDigest = document.querySelector<HTMLButtonElement>('#copy-digest');
+  const copyRaw = document.querySelector<HTMLButtonElement>('#copy-raw');
+  const explorerLink = document.querySelector<HTMLAnchorElement>('#report-explorer-link');
+  const recentKey = 'sui-lens:recent-inspections';
+  const inspections = new LatestInspection();
+  let activeDigest = '';
+
+  function readRecent(): RecentInspection[] {
+    try {
+      return parseRecentInspections(localStorage.getItem(recentKey));
+    } catch {
+      return [];
+    }
+  }
+
+  function shortDigest(digest: string) {
+    return digest.length > 18 ? `${digest.slice(0, 9)}…${digest.slice(-7)}` : digest;
+  }
+
+  function paintRecent() {
+    const recent = readRecent().slice(0, 5);
+    recentElement?.toggleAttribute('hidden', recent.length === 0);
+    if (!recentList) return;
+    const links = recent.map((item) => {
+      const link = element('a', 'recent-inspection');
+      link.href = `?digest=${encodeURIComponent(item.digest)}`;
+      const copy = element('span');
+      copy.append(element('code', '', shortDigest(item.digest)), element('strong', '', item.summary));
+      const date = element('time', '', new Date(item.inspectedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }));
+      date.dateTime = item.inspectedAt;
+      link.append(copy, date);
+      return link;
+    });
+    recentList.replaceChildren(...links);
+  }
+
+  function remember(report: LensReport) {
+    const next: RecentInspection = { digest: report.digest, summary: report.summary, inspectedAt: new Date().toISOString() };
+    const recent = [next, ...readRecent().filter((item) => item.digest !== report.digest)].slice(0, 5);
+    try { localStorage.setItem(recentKey, JSON.stringify(recent)); } catch {}
+    paintRecent();
+  }
+
+  async function copyValue(button: HTMLButtonElement, value: string) {
+    const original = button.textContent ?? 'Copy';
+    try {
+      await navigator.clipboard.writeText(value);
+      button.textContent = 'Copied ✓';
+    } catch {
+      button.textContent = 'Copy failed';
+    }
+    window.setTimeout(() => { button.textContent = original; }, 1400);
+  }
+
+  function evidenceExplorer(item: LensAnswer['evidence'][number]): { href: string; label: string } | undefined {
+    const ids = item.raw?.match(/0x[a-fA-F0-9]{64}/g) ?? [];
+    const id = ids.at(-1);
+    if (!id) return undefined;
+    if (['Sender', 'Gas owner', 'Balance'].includes(item.label)) {
+      return { href: `https://suiscan.xyz/mainnet/account/${id}/portfolio`, label: 'Open account ↗' };
+    }
+    if (['created', 'mutated', 'deleted'].includes(item.label)) {
+      return { href: `https://suiscan.xyz/mainnet/object/${id}`, label: 'Open object ↗' };
+    }
+    return undefined;
+  }
+
+  function showOnly(target: HTMLElement | null) {
+    [empty, loading, error, reportElement].forEach((element) => {
+      if (element) element.hidden = element !== target;
+    });
+  }
+
+  function setError(title: string, message: string, invalidDigest = false) {
+    const titleElement = document.querySelector<HTMLElement>('#lens-error-title');
+    const messageElement = document.querySelector<HTMLElement>('#lens-error-message');
+    if (titleElement) titleElement.textContent = title;
+    if (messageElement) messageElement.textContent = message;
+    input?.toggleAttribute('aria-invalid', invalidDigest);
+    if (retry) {
+      retry.dataset.action = invalidDigest ? 'edit' : 'retry';
+      retry.textContent = invalidDigest ? 'Edit the digest' : 'Try again';
+    }
+    showOnly(error);
+    error?.focus({ preventScroll: true });
+  }
+
+  function element<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function renderAnswer(answer: LensAnswer) {
+    const article = element('article', 'answer-card');
+    const index = element('div', 'answer-index');
+    index.append(element('span', '', answer.number), element('i'));
+
+    const content = element('div', 'answer-content');
+    const heading = element('div', 'answer-heading');
+    heading.append(element('h3', '', answer.question), element('span', `evidence-level ${answer.level}`, answer.level));
+    content.append(heading, element('p', '', answer.answer));
+
+    const details = element('details');
+    details.append(element('summary', '', 'Inspect the evidence'));
+    const list = element('dl');
+    if (answer.evidence.length === 0) {
+      const row = element('div');
+      row.append(element('dt', '', 'Unavailable'), element('dd', '', 'The source did not return this field.'));
+      list.append(row);
+    }
+    for (const item of answer.evidence) {
+      const row = element('div', item.emphasis === 'total' ? 'evidence-total' : '');
+      row.append(element('dt', '', item.label), element('dd', '', item.value));
+      if (item.raw) {
+        const raw = element('code', '', item.raw);
+        if (item.raw.length > 240) {
+          const rawDetails = element('details', 'evidence-raw');
+          rawDetails.append(element('summary', '', 'Open raw value'), raw);
+          row.append(rawDetails);
+        } else {
+          row.append(raw);
+        }
+      }
+      const actions = element('span', 'evidence-actions');
+      const copy = element('button', 'copy-button', item.raw ? 'Copy raw value' : 'Copy value');
+      copy.type = 'button';
+      copy.addEventListener('click', () => copyValue(copy, item.raw ?? item.value));
+      actions.append(copy);
+      const external = evidenceExplorer(item);
+      if (external) {
+        const link = element('a', '', external.label);
+        link.href = external.href;
+        link.target = '_blank';
+        link.rel = 'noreferrer';
+        actions.append(link);
+      }
+      row.append(actions);
+      list.append(row);
+    }
+    details.append(list);
+    const lesson = element('a', '', `${answer.lessonLabel} →`);
+    lesson.href = answer.lessonHref;
+    content.append(details, lesson);
+    article.append(index, content);
+    return article;
+  }
+
+  function renderReport(report: LensReport) {
+    const status = document.querySelector<HTMLElement>('#report-status');
+    const statusText = status?.querySelector('span');
+    const network = document.querySelector<HTMLElement>('#report-network');
+    const title = document.querySelector<HTMLElement>('#report-title');
+    const digest = document.querySelector<HTMLElement>('#report-digest');
+    const answerList = document.querySelector<HTMLElement>('#answer-list');
+    const raw = document.querySelector<HTMLElement>('#raw-json');
+
+    if (status) status.dataset.status = report.status;
+    if (statusText) statusText.textContent = report.status;
+    if (network) network.textContent = report.network;
+    if (title) title.textContent = report.summary;
+    if (digest) {
+      digest.textContent = report.digest;
+      digest.title = report.digest;
+    }
+    if (explorerLink) explorerLink.href = `https://suiscan.xyz/mainnet/tx/${encodeURIComponent(report.digest)}`;
+    if (answerList) answerList.replaceChildren(...report.answers.map(renderAnswer));
+    if (raw) raw.textContent = report.rawJson;
+    remember(report);
+    showOnly(reportElement);
+    reportElement?.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }
+
+  function readableError(reason: unknown): { title: string; message: string; invalidDigest: boolean } {
+    const message = reason instanceof Error ? reason.message : String(reason);
+    if (/not.?found/i.test(message)) {
+      return {
+        title: 'No mainnet transaction matched that digest.',
+        message: 'Check every character and make sure the transaction was executed on Sui mainnet.',
+        invalidDigest: true,
+      };
+    }
+    return {
+      title: 'The chain evidence could not be reached.',
+      message: 'Your digest is still in the field above. Check the connection and try again; no transaction was sent or changed.',
+      invalidDigest: false,
+    };
+  }
+
+  async function inspect(digest: string, updateHistory = true) {
+    const value = digest.trim();
+    activeDigest = value;
+    if (!value) {
+      inspections.cancel();
+      input?.removeAttribute('aria-invalid');
+      if (updateHistory) history.pushState({}, '', window.location.pathname);
+      showOnly(empty);
+      return;
+    }
+    if (!isTransactionDigest(value)) {
+      inspections.cancel();
+      setError('That does not look like a Sui transaction digest.', 'A digest is a 43 or 44 character Base58 value. Check for spaces or a copied explorer URL.', true);
+      return;
+    }
+
+    const controller = inspections.start();
+    input?.removeAttribute('aria-invalid');
+    if (input) input.value = value;
+    if (updateHistory) history.pushState({}, '', `?digest=${encodeURIComponent(value)}`);
+    showOnly(loading);
+
+    try {
+      const result = await getMainnetTransaction(value, controller.signal);
+      const signatures = await resolveMoveFunctionSignatures(result, controller.signal);
+      inspections.commit(controller, () => {
+        renderReport(explainTransaction(normalizeTransaction(result, signatures)));
+      });
+    } catch (reason) {
+      if (!inspections.isCurrent(controller)) return;
+      const friendly = readableError(reason);
+      setError(friendly.title, friendly.message, friendly.invalidDigest);
+    }
+  }
+
+  form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    inspect(input?.value ?? '');
+  });
+  sampleInspection?.addEventListener('click', (event) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    inspect(sampleInspection.dataset.digest ?? '');
+  });
+  retry?.addEventListener('click', () => {
+    if (retry.dataset.action === 'edit') {
+      input?.focus();
+      input?.select();
+      return;
+    }
+    inspect(activeDigest || input?.value || '', false);
+  });
+  copyDigest?.addEventListener('click', () => {
+    const digest = document.querySelector<HTMLElement>('#report-digest')?.textContent ?? '';
+    if (digest) copyValue(copyDigest, digest);
+  });
+  copyRaw?.addEventListener('click', () => {
+    const raw = document.querySelector<HTMLElement>('#raw-json')?.textContent ?? '';
+    if (raw) copyValue(copyRaw, raw);
+  });
+  clearRecent?.addEventListener('click', () => {
+    try { localStorage.removeItem(recentKey); } catch {}
+    paintRecent();
+  });
+  window.addEventListener('popstate', () => {
+    const digest = new URLSearchParams(window.location.search).get('digest') ?? '';
+    if (input) input.value = digest;
+    inspect(digest, false);
+  });
+
+  const initialDigest = new URLSearchParams(window.location.search).get('digest') ?? '';
+  if (input) input.value = initialDigest;
+  paintRecent();
+  if (initialDigest) inspect(initialDigest, false);
+</script>

@@ -1,0 +1,193 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import EvidencePanel from '../../../components/EvidencePanel.astro';
+import JourneyMap from '../../../components/JourneyMap.astro';
+import KnowledgeCheck from '../../../components/KnowledgeCheck.astro';
+import StoryLesson from '../../../components/StoryLesson.astro';
+import { journeyStops } from '../../../data/journey';
+import { getTrack } from '../../../data/tracks';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const lessons = await getCollection('lessons');
+  return lessons.map((entry) => {
+    const [track, lesson] = entry.id.split('/');
+    return { params: { track, lesson }, props: { entry } };
+  });
+}
+
+interface Props { entry: CollectionEntry<'lessons'> }
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const track = getTrack(entry.data.track)!;
+const allLessons = await getCollection('lessons');
+const trackLessons = allLessons.filter(({ data }) => data.track === track.slug)
+  .sort((a, b) => a.data.order - b.data.order);
+const index = trackLessons.findIndex((lesson) => lesson.id === entry.id);
+const previous = index > 0 ? trackLessons[index - 1] : undefined;
+const next = index < trackLessons.length - 1 ? trackLessons[index + 1] : undefined;
+const toHref = (lesson: CollectionEntry<'lessons'>) => `/learn/${lesson.data.track}/${lesson.id.split('/').at(-1)}`;
+const journeyStop = entry.data.story.journeyStop;
+const journeyIndex = journeyStop ? journeyStops.findIndex((item) => item.stop === journeyStop) : -1;
+const previousJourney = journeyIndex > 0 ? journeyStops[journeyIndex - 1] : undefined;
+const nextJourney = journeyIndex >= 0 && journeyIndex < journeyStops.length - 1 ? journeyStops[journeyIndex + 1] : undefined;
+const prerequisite = entry.data.prerequisite
+  ? allLessons.find((lesson) => lesson.data.title === entry.data.prerequisite)
+  : undefined;
+const journeyNextHref = nextJourney?.href ?? '/lens';
+const journeyNextLabel = nextJourney?.title ?? 'Lens';
+---
+
+<BaseLayout title={entry.data.title} description={entry.data.description}>
+  <div class="lesson-shell">
+    <aside class="lesson-rail" aria-label="Track lessons">
+      <a class="back-link" href={`/learn/${track.slug}`}>← {track.title}</a>
+      <div class="rail-track-label">
+        <span>{journeyStop ? 'One story across Sui' : `Track ${track.number}`}</span>
+        <strong>{journeyStop ? 'The Backpack Journey' : track.shortTitle}</strong>
+      </div>
+      {journeyStop ? (
+        <JourneyMap compact currentStop={journeyStop} />
+      ) : (
+        <nav>
+          {trackLessons.map((lesson) => (
+            <a class:list={{ active: lesson.id === entry.id }} href={toHref(lesson)} aria-current={lesson.id === entry.id ? 'page' : undefined}>
+              <span>{String(lesson.data.order).padStart(2, '0')}</span>
+              <strong>{lesson.data.title}</strong>
+            </a>
+          ))}
+        </nav>
+      )}
+      <div class="rail-progress-note"><span>{journeyStop ? `${journeyStop} / 6` : `${index + 1} / ${trackLessons.length}`}</span> {journeyStop ? 'along the journey' : 'in this track'}</div>
+    </aside>
+
+    <article class="lesson-page">
+      <header class="lesson-header">
+        <div class="lesson-breadcrumb">
+          {journeyStop ? <><a href="/">Journey</a><span>/</span><span>Stop {journeyStop} of 6</span></> : <><a href="/learn">Learn</a><span>/</span><a href={`/learn/${track.slug}`}>{track.shortTitle}</a></>}
+        </div>
+        <p class="section-kicker">{entry.data.eyebrow}</p>
+        <h1>{entry.data.title}</h1>
+        <p class="lesson-description">{entry.data.description}</p>
+        <div class="lesson-facts"><span>{entry.data.duration}</span><span>{entry.data.level}</span><span>{journeyStop ? `Journey stop ${journeyStop} of 6` : `Lesson ${entry.data.order} of ${trackLessons.length}`}</span></div>
+        {prerequisite && <p class="lesson-prerequisite">Builds on <a href={toHref(prerequisite)}>{prerequisite.data.title}</a></p>}
+      </header>
+
+      <section class="lesson-outcome">
+        <span>By the end</span>
+        <strong>{entry.data.outcome}</strong>
+      </section>
+
+      <StoryLesson story={entry.data.story}>
+        <KnowledgeCheck slot="prediction" {...entry.data.prediction} />
+      </StoryLesson>
+
+      <div class="lesson-prose">
+        <Content />
+      </div>
+
+      <section class="bridge-panel" aria-labelledby="bridge-title">
+        <header><span>The teaching bridge</span><h2 id="bridge-title">From JavaScript to Sui</h2></header>
+        {entry.data.bridge.aliases && (
+          <div class="bridge-aliases">
+            <div class="bridge-alias-heading">
+              <span>Same values, different labels</span>
+              <p>JavaScript uses names. The saved PTB records where each value came from.</p>
+            </div>
+            <div class="bridge-alias-list">
+              {entry.data.bridge.aliases.map((alias) => (
+                <div>
+                  <code>{alias.javascript}</code>
+                  <span aria-hidden="true">→</span>
+                  <code>{alias.sui}</code>
+                  <small>{alias.meaning}</small>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div class="bridge-columns">
+          <div>
+            <span>Familiar JavaScript model</span>
+            <p>{entry.data.bridge.javascript}</p>
+            <div class="bridge-code"><small>JavaScript sketch</small><pre><code>{entry.data.bridge.javascriptCode}</code></pre></div>
+          </div>
+          <div>
+            <span>What Sui adds</span>
+            <p>{entry.data.bridge.sui}</p>
+            <div class="bridge-code"><small>Sui evidence</small><pre><code>{entry.data.bridge.suiCode}</code></pre></div>
+          </div>
+        </div>
+        <div class="bridge-boundary">
+          <p><strong>Carry over:</strong> {entry.data.bridge.carryOver}</p>
+          <p><strong>Sui difference:</strong> {entry.data.bridge.difference}</p>
+        </div>
+      </section>
+
+      <EvidencePanel items={entry.data.evidence} />
+
+      <section class="keep-this">
+        <span>Keep this</span>
+        <p>{entry.data.takeaway}</p>
+        <button
+          type="button"
+          data-complete={entry.id}
+          data-journey={journeyStop ? 'true' : undefined}
+          data-next-href={journeyStop ? journeyNextHref : undefined}
+          data-next-label={journeyStop ? journeyNextLabel : undefined}
+          aria-pressed="false"
+        >{journeyStop ? 'Complete and continue →' : 'Mark lesson complete'}</button>
+      </section>
+
+      <nav class="lesson-pagination" aria-label="Lesson pagination">
+        {journeyStop ? (
+          <>
+            {previousJourney ? <a href={previousJourney.href}><span>Previous journey stop</span><strong>← {previousJourney.title}</strong></a> : <span></span>}
+            <span></span>
+          </>
+        ) : (
+          <>
+            {previous ? <a href={toHref(previous)}><span>Previous</span><strong>← {previous.data.title}</strong></a> : <span></span>}
+            {next ? <a class="next" href={toHref(next)}><span>Next</span><strong>{next.data.title} →</strong></a> : <a class="next" href="/lens"><span>Track complete</span><strong>Use the Lens →</strong></a>}
+          </>
+        )}
+      </nav>
+    </article>
+  </div>
+</BaseLayout>
+
+<script>
+  import { parseCompletedLessons } from '../../../lib/progress';
+
+  const button = document.querySelector<HTMLButtonElement>('[data-complete]');
+  if (button) {
+    const key = 'sui-lens:completed-lessons';
+    const lesson = button.dataset.complete ?? '';
+    const read = (): string[] => {
+      try { return parseCompletedLessons(localStorage.getItem(key)); } catch { return []; }
+    };
+    const paint = (done: boolean) => {
+      button.setAttribute('aria-pressed', String(done));
+      button.classList.toggle('is-complete', done);
+      if (button.dataset.journey === 'true') {
+        button.textContent = done ? `Continue to ${button.dataset.nextLabel ?? 'the next stop'} →` : 'Complete and continue →';
+      } else {
+        button.textContent = done ? 'Lesson complete ✓' : 'Mark lesson complete';
+      }
+    };
+    paint(read().includes(lesson));
+    button.addEventListener('click', () => {
+      const completed = new Set(read());
+      if (button.dataset.journey === 'true') {
+        completed.add(lesson);
+        localStorage.setItem(key, JSON.stringify([...completed]));
+        paint(true);
+        window.location.assign(button.dataset.nextHref ?? '/');
+        return;
+      }
+      completed.has(lesson) ? completed.delete(lesson) : completed.add(lesson);
+      localStorage.setItem(key, JSON.stringify([...completed]));
+      paint(completed.has(lesson));
+    });
+  }
+</script>

@@ -1,0 +1,31 @@
+---
+interface Props {
+  currentPath: string;
+}
+
+const { currentPath } = Astro.props;
+const nav = [
+  { href: '/', label: 'Journey' },
+  { href: '/lens', label: 'Lens' },
+];
+---
+
+<header class="site-header">
+  <a class="brand" href="/" aria-label="Sui Lens home">
+    <span class="brand-symbol" aria-hidden="true">
+      <img src="/favicon.svg" alt="" width="42" height="42" />
+    </span>
+    <span class="brand-copy"><strong>Sui Lens</strong><small>Sui learning for JavaScript developers</small></span>
+  </a>
+  <nav aria-label="Primary navigation">
+    {nav.map((item) => (
+      <a
+        href={item.href}
+        class:list={{ active: item.href === '/' ? currentPath === '/' || currentPath.startsWith('/learn') : currentPath === item.href || currentPath.startsWith(`${item.href}/`) }}
+        aria-current={currentPath === item.href ? 'page' : undefined}
+      >
+        {item.label}
+      </a>
+    ))}
+  </nav>
+</header>

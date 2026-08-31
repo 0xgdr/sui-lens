@@ -1,0 +1,46 @@
+---
+import { getCollection } from 'astro:content';
+import LessonCard from '../../../components/LessonCard.astro';
+import { getTrack, tracks } from '../../../data/tracks';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+export function getStaticPaths() {
+  return tracks.map((track) => ({ params: { track: track.slug } }));
+}
+
+const { track: trackSlug } = Astro.params;
+const track = getTrack(trackSlug ?? '');
+if (!track) return Astro.redirect('/learn');
+
+const lessons = (await getCollection('lessons', ({ data }) => data.track === track.slug))
+  .sort((a, b) => a.data.order - b.data.order);
+---
+
+<BaseLayout title={track.title} description={track.description}>
+  <section class:list={['track-hero', `accent-${track.accent}`]}>
+    <div class="page-shell">
+      <a class="back-link" href="/learn">← All tracks</a>
+      <div class="track-hero-grid">
+        <div>
+          <p class="section-kicker">Track {track.number} · {track.lessonCount} lessons</p>
+          <h1>{track.title}</h1>
+          <p>{track.description}</p>
+        </div>
+        <div class="track-goal">
+          <span>Track outcome</span>
+          <strong>{track.outcome}</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="page-shell lesson-list" aria-label={`${track.title} lessons`}>
+    {lessons.map((lesson) => <LessonCard lesson={lesson} />)}
+  </section>
+  <section class="page-shell next-track-callout">
+    <div>
+      <span>Use the Lens alongside the track</span>
+      <strong>Open the worked transfer and connect each lesson to transaction evidence.</strong>
+    </div>
+    <a class="button button-dark" href="/lens?digest=GWJNiU5UHbcpd8UNgqQkiANG3jY8pjKHXa9AhHx68xzX">Open worked transfer →</a>
+  </section>
+</BaseLayout>

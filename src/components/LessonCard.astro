@@ -1,0 +1,24 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  lesson: CollectionEntry<'lessons'>;
+}
+
+const { lesson } = Astro.props;
+const slug = lesson.id.split('/').at(-1);
+---
+
+<a class="lesson-card" href={`/learn/${lesson.data.track}/${slug}`}>
+  <span class="lesson-order">{String(lesson.data.order).padStart(2, '0')}</span>
+  <div>
+    <p>{lesson.data.eyebrow}</p>
+    <h3>{lesson.data.title}</h3>
+    <span>{lesson.data.description}</span>
+  </div>
+  <div class="lesson-meta">
+    <span>{lesson.data.duration}</span>
+    <span>{lesson.data.level}</span>
+  </div>
+  <span class="lesson-arrow" aria-hidden="true">→</span>
+</a>

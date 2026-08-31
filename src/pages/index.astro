@@ -1,0 +1,111 @@
+---
+import TrackCard from '../components/TrackCard.astro';
+import JourneyMap from '../components/JourneyMap.astro';
+import { tracks } from '../data/tracks';
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout>
+  <section class="home-hero">
+    <div class="hero-inner">
+      <div>
+        <p class="eyebrow">Sui for JavaScript developers</p>
+        <h1>Use what you know to make sense of Sui.</h1>
+        <p class="hero-lede">
+          Follow one backpack through six Sui ideas. Then bring a real transaction to Lens whenever you want to see what actually happened.
+        </p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="/learn/objects/identity-and-state" data-journey-continue>Start with object identity <span aria-hidden="true">&nbsp;→</span></a>
+        </div>
+        <p class="teacher-note"><span>How we’ll work</span>Start with a JavaScript instinct, try the idea, then check it against the object, command, or effect Sui recorded.</p>
+      </div>
+
+      <div class="hero-backpack" aria-label="Backpack 0xb4c0, the teaching object followed through the journey">
+        <div class="hero-backpack-art"><img src="/journey/backpack.svg" alt="" /></div>
+        <dl>
+          <div><dt>Object</dt><dd>Backpack</dd></div>
+          <div><dt>ID</dt><dd>0xb4c0</dd></div>
+          <div><dt>Version</dt><dd>10</dd></div>
+          <div><dt>Owner</dt><dd>your address</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="journey-section home-section" aria-labelledby="journey-heading">
+    <div class="section-heading journey-heading">
+      <div>
+        <p class="section-kicker">The backpack journey</p>
+        <h2 id="journey-heading">Start here, or return to the bit that is still fuzzy.</h2>
+      </div>
+      <p>Take the six stops in order the first time. Your progress stays on this device, so it is easy to come back.</p>
+    </div>
+    <JourneyMap />
+  </section>
+
+  <section class="lens-companion" aria-labelledby="lens-companion-heading">
+    <div>
+      <p class="section-kicker">When you have a transaction digest</p>
+      <h2 id="lens-companion-heading">Open it in Lens.</h2>
+      <p>Lens asks the same five questions of a real mainnet transaction: who acted, what went in, what ran, what changed, and what it cost.</p>
+    </div>
+    <a class="button button-dark" href="/lens">Break down a transaction <span aria-hidden="true">&nbsp;→</span></a>
+  </section>
+
+  <section class="field-note-strip" aria-label="A note about the story">
+    <div class="field-note-inner">
+      <img src="/journey/map.svg" alt="" aria-hidden="true" />
+      <div>
+        <span>A note before we set off</span>
+        <blockquote>“Inside the backpack” only means a real parent-child relationship when Sui records one. If the story is only grouping things visually, we’ll say so.</blockquote>
+      </div>
+      <a href="/method">How we use analogies →</a>
+    </div>
+  </section>
+
+  <section class="home-section" aria-labelledby="tracks-heading">
+    <div class="section-heading">
+      <div>
+        <p class="section-kicker">The reference shelf</p>
+        <h2 id="tracks-heading">Come back by concept when something feels fuzzy.</h2>
+      </div>
+      <p>Six stops make the main journey. Three optional deep dives cover object lifecycle, command results, and full Move call identity.</p>
+    </div>
+    <details class="reference-shelf">
+      <summary>
+        <span>Browse the three concept shelves</span>
+        <small>Nine lessons, including the three optional deep dives</small>
+      </summary>
+      <div class="track-grid">
+        {tracks.map((track) => <TrackCard track={track} />)}
+      </div>
+    </details>
+  </section>
+
+</BaseLayout>
+
+<script>
+  import { parseCompletedLessons } from '../lib/progress';
+
+  const stops = [
+    ['objects/identity-and-state', '/learn/objects/identity-and-state', 'Start with object identity'],
+    ['transactions/read-the-ptb', '/learn/transactions/read-the-ptb', 'Continue with transaction inputs'],
+    ['transactions/effects-and-cost', '/learn/transactions/effects-and-cost', 'Continue with effects and cost'],
+    ['objects/ownership-and-access', '/learn/objects/ownership-and-access', 'Continue with ownership'],
+    ['move/borrows-and-values', '/learn/move/borrows-and-values', 'Continue with Move signatures'],
+    ['move/reconstruct-from-evidence', '/learn/move/reconstruct-from-evidence', 'Continue with the full receipt'],
+  ] as const;
+  const link = document.querySelector<HTMLAnchorElement>('[data-journey-continue]');
+  if (link) {
+    let completed: string[] = [];
+    try { completed = parseCompletedLessons(localStorage.getItem('sui-lens:completed-lessons')); } catch {}
+    const next = stops.find(([id]) => !completed.includes(id));
+    if (next) {
+      link.href = next[1];
+      link.childNodes[0].textContent = `${next[2]} `;
+    } else {
+      link.href = '/lens';
+      link.childNodes[0].textContent = 'Try a real transaction ';
+    }
+  }
+</script>

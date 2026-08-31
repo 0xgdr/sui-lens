@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Sui Lens">
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="#07111f"/>
+  <path d="m37.6 36.9 13.3 13.3" fill="none" stroke="#71d7ff" stroke-linecap="round" stroke-width="7"/>
+  <circle cx="27.5" cy="26.8" r="15.3" fill="#12243b" stroke="#fffefa" stroke-width="4"/>
+  <path d="M27.5 16.9c-4.7 5.4-7.1 8.9-7.1 12.3a7.1 7.1 0 0 0 14.2 0c0-3.4-2.4-6.9-7.1-12.3Z" fill="#2b84ff"/>
+  <path d="M23.9 29.7c.5 1.6 1.7 2.5 3.6 2.8" fill="none" stroke="#bdeaff" stroke-linecap="round" stroke-width="2.4"/>
+</svg>

@@ -1,0 +1,29 @@
+---
+interface Item {
+  label: string;
+  value: string;
+  note?: string;
+}
+
+interface Props {
+  items: Item[];
+}
+
+const { items } = Astro.props;
+---
+
+<section class="evidence-panel" aria-labelledby="evidence-title">
+  <header>
+    <span>Chain evidence</span>
+    <h2 id="evidence-title">Point at the values</h2>
+  </header>
+  <dl>
+    {items.map((item) => (
+      <div>
+        <dt>{item.label}</dt>
+        <dd>{item.value}</dd>
+        {item.note && <small>{item.note}</small>}
+      </div>
+    ))}
+  </dl>
+</section>

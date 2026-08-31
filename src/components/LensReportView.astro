@@ -1,0 +1,37 @@
+---
+import type { LensReport } from '../lib/lens/types';
+
+interface Props { report: LensReport }
+const { report } = Astro.props;
+---
+
+<section class="lens-report" aria-labelledby="report-title">
+  <header class="report-header">
+    <div>
+      <span class="status-pill"><i></i>{report.status}</span>
+      <span>{report.network}</span>
+    </div>
+    <h2 id="report-title">{report.summary}</h2>
+    <code title={report.digest}>{report.digest}</code>
+  </header>
+  <div class="answer-list">
+    {report.answers.map((answer) => (
+      <article class="answer-card">
+        <div class="answer-index"><span>{answer.number}</span><i></i></div>
+        <div class="answer-content">
+          <div class="answer-heading"><h3>{answer.question}</h3><span class:list={['evidence-level', answer.level]}>{answer.level}</span></div>
+          <p>{answer.answer}</p>
+          <details>
+            <summary>Inspect the evidence</summary>
+            <dl>
+              {answer.evidence.map((item) => (
+                <div><dt>{item.label}</dt><dd>{item.value}</dd>{item.raw && <code>{item.raw}</code>}</div>
+              ))}
+            </dl>
+          </details>
+          <a href={answer.lessonHref}>{answer.lessonLabel} →</a>
+        </div>
+      </article>
+    ))}
+  </div>
+</section>

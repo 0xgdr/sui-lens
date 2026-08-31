@@ -1,0 +1,29 @@
+---
+import type { Track } from '../data/tracks';
+
+interface Props {
+  track: Track;
+}
+
+const { track } = Astro.props;
+const icons: Record<string, string> = {
+  objects: '/journey/backpack.svg',
+  transactions: '/journey/map.svg',
+  move: '/journey/tag.svg',
+};
+---
+
+<a class:list={['track-card', `accent-${track.accent}`]} href={`/learn/${track.slug}`}>
+  <div class="track-card-top">
+    <span class="track-number">Concept shelf {track.number}</span>
+    <span class="lesson-count">{track.lessonCount} lessons</span>
+  </div>
+  <span class="track-card-icon" aria-hidden="true"><img src={icons[track.slug]} alt="" /></span>
+  <h3>{track.title}</h3>
+  <p>{track.description}</p>
+  <div class="track-outcome">
+    <span>You’ll be able to</span>
+    <strong>{track.outcome}</strong>
+  </div>
+  <span class="card-link">Open these lessons <span aria-hidden="true">→</span></span>
+</a>

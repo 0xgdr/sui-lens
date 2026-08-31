@@ -1,0 +1,67 @@
+---
+import { journeyStops } from '../data/journey';
+
+interface Props {
+  compact?: boolean;
+  currentStop?: number;
+}
+
+const { compact = false, currentStop } = Astro.props;
+---
+
+<div class:list={['journey-board', { compact }]} data-journey-board>
+  {!compact && (
+    <div class="journey-progress">
+      <div>
+        <span>Your journey</span>
+        <strong data-progress-copy>0 of 6 stops complete</strong>
+      </div>
+      <div class="journey-progress-track" aria-hidden="true"><i data-progress-bar></i></div>
+      <small>Saved on this device</small>
+    </div>
+  )}
+  <nav class:list={['journey-map', { compact }]} aria-label="The Backpack Journey">
+    {journeyStops.map((item) => (
+      <a
+        class:list={{ current: currentStop === item.stop }}
+        href={item.href}
+        data-lesson={item.href.replace('/learn/', '')}
+        aria-current={currentStop === item.stop ? 'step' : undefined}
+      >
+        <span class="journey-stop-number">{String(item.stop).padStart(2, '0')}</span>
+        <span class="journey-icon"><img src={item.icon} alt="" /></span>
+        <span class="journey-stop-copy">
+          <strong>{item.title}</strong>
+          <small>{item.subtitle}</small>
+          {!compact && <em>{item.prompt}</em>}
+        </span>
+        <span class="journey-map-arrow" aria-hidden="true">→</span>
+        <span class="journey-done" aria-hidden="true">✓</span>
+      </a>
+    ))}
+  </nav>
+</div>
+
+<script>
+  import { parseCompletedLessons } from '../lib/progress';
+
+  const completionKey = 'sui-lens:completed-lessons';
+  const readCompleted = (): string[] => {
+    try { return parseCompletedLessons(localStorage.getItem(completionKey)); } catch { return []; }
+  };
+
+  for (const board of document.querySelectorAll<HTMLElement>('[data-journey-board]')) {
+    const completed = new Set(readCompleted());
+    const links = [...board.querySelectorAll<HTMLElement>('[data-lesson]')];
+    let count = 0;
+    for (const link of links) {
+      const done = completed.has(link.dataset.lesson ?? '');
+      link.classList.toggle('is-complete', done);
+      if (done) count += 1;
+    }
+    const copy = board.querySelector<HTMLElement>('[data-progress-copy]');
+    const bar = board.querySelector<HTMLElement>('[data-progress-bar]');
+    if (copy) copy.textContent = `${count} of ${links.length} stops complete`;
+    if (bar) bar.style.width = `${links.length ? (count / links.length) * 100 : 0}%`;
+  }
+</script>
